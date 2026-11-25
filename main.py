@@ -17,14 +17,32 @@ ENTRY = (
     "the first time I understood home was a taste, not a place."
 )
 
+# Bounty gate (from the competition kit): UTF-8, 1-200 characters,
+# not only whitespace, one sentence.
+_MAX_CHARS = 200
+_SENTENCE_ENDERS = ".!?"
+
 
 def validate_entry(text: str) -> None:
-    """Fail loudly if the sentence breaks the bounty gate (one sentence,
-    1-200 characters, no newline) instead of submitting a bad entry."""
-    if not 1 <= len(text) <= 200:
+    """Fail loudly if the sentence breaks the bounty gate instead of
+    submitting a bad entry.
+
+    Checks, in order: length 1-200 characters, not whitespace-only,
+    no control characters (which would corrupt the plain-text output),
+    a single sentence (exactly one sentence-ending mark, at the end),
+    and no embedded newline.
+    """
+    if not 1 <= len(text) <= _MAX_CHARS:
         raise ValueError(f"entry is {len(text)} characters, must be 1-200")
-    if "\n" in text or not text.endswith("."):
-        raise ValueError("entry must be a single sentence ending with '.'")
+    if not text.strip():
+        raise ValueError("entry must not be only whitespace")
+    if any(ord(ch) < 0x20 or ord(ch) == 0x7F for ch in text):
+        raise ValueError("entry must not contain control characters")
+    if "\n" in text or "\r" in text:
+        raise ValueError("entry must be a single line")
+    enders = [ch for ch in text if ch in _SENTENCE_ENDERS]
+    if len(enders) != 1 or not text.endswith(enders[0]):
+        raise ValueError("entry must be exactly one sentence")
 
 
 def main() -> int:
